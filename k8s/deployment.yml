@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: micronaut-demo
+  namespace: default
+  labels:
+    app: micronaut-demo
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: micronaut-demo
+  template:
+    metadata:
+      labels:
+        app: micronaut-demo
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/prometheus"
+    spec:
+      # Necessário para o micronaut-kubernetes-discovery-client ler
+      # ConfigMaps/Services/Endpoints (ver k8s/rbac.yaml).
+      serviceAccountName: micronaut-demo
+      containers:
+        - name: micronaut-demo
+          # Troque pela tag real gerada pelo seu CI (git SHA ou versão semântica).
+          # :latest com IfNotPresent pode fazer um redeploy não puxar código novo.
+          image: micronaut-demo:20261002-085934
+          imagePullPolicy: Never   # <-- CRÍTICO: impedir pull remoto
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: JDBC_URL
+              value: "jdbc:postgresql://postgres-service:5432/orderdb"
+            - name: JDBC_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: username
+            - name: JDBC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: password
+            - name: JDBC_DRIVER
+              value: "org.postgresql.Driver"
+            # Dialeto do Micronaut Data JDBC (não é mais o dialeto do
+            # Hibernate, que não existe mais no projeto).
+            - name: JDBC_DIALECT
+              value: "POSTGRES"
+            # Em produção o schema NÃO deve ser gerado/recriado automaticamente
+            # a cada deploy - isso é destrutivo num banco persistente. A
+            # criação de schema deve vir de uma ferramenta de migração real
+            # (Flyway/Liquibase), fora do escopo deste manifest por enquanto.
+            - name: JDBC_SCHEMA_GENERATE
+              value: "CREATE"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"
+            - name: KUBERNETES_NAMESPACE
+              value: "default"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: secret
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5

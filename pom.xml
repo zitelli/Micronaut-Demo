@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>micronaut-demo</artifactId>
+    <version>1.0.0</version>
+    <packaging>${packaging}</packaging>
+
+    <properties>
+        <packaging>jar</packaging>
+        <jdk.version>17</jdk.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Single source of truth: the platform BOM below pins every
+             io.micronaut* artifact (core, data, security, sql, kubernetes,
+             kafka, micrometer, serde, validation, test) to versions that
+             were released and tested together. Hand-picking individual
+             module versions caused a transitive version clash earlier
+             (micronaut-core 4.7.6 vs micronaut-inject 4.9.3), so don't
+             override these piecemeal - bump micronaut.platform.version
+             instead if a newer aligned set is needed. -->
+        <micronaut.platform.version>4.9.0</micronaut.platform.version>
+        <micronaut.maven.plugin.version>4.8.0</micronaut.maven.plugin.version>
+
+        <!-- These mirror the platform BOM's own properties (verified from
+             its published POM) so the annotationProcessorPaths below - which
+             Maven does not resolve through dependencyManagement - stay in
+             lockstep with the managed dependency versions. -->
+        <micronaut.core.version>4.9.5</micronaut.core.version>
+        <micronaut.data.version>4.13.1</micronaut.data.version>
+        <micronaut.security.version>4.13.0</micronaut.security.version>
+        <micronaut.validation.version>4.10.0</micronaut.validation.version>
+        <micronaut.serde.version>2.15.0</micronaut.serde.version>
+        <micronaut.aot.enabled>true</micronaut.aot.enabled>
+        <micronaut.aot.packageName>com.example.aot.generated</micronaut.aot.packageName>
+        <micronaut.aot.version>2.9.0</micronaut.aot.version>
+        <!-- Non-Micronaut artifacts: also taken from the platform BOM's
+             properties for a verified-compatible combination. -->
+        <h2.version>2.3.232</h2.version>
+        <postgresql.version>42.7.5</postgresql.version>
+        <swagger.version>2.2.34</swagger.version>
+        <testcontainers.version>1.20.6</testcontainers.version>
+        <junit.version>5.12.2</junit.version>
+        <mockito.version>5.18.0</mockito.version>
+        <rest-assured.version>5.5.5</rest-assured.version>
+        <jakarta.annotation-api.version>2.1.1</jakarta.annotation-api.version>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <exec.mainClass>com.example.Application</exec.mainClass>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>4.2.18.Final</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.micronaut.platform</groupId>
+                <artifactId>micronaut-platform</artifactId>
+                <version>${micronaut.platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Core - versions come from the platform BOM above -->
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-http-server-netty</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-http-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-management</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut.validation</groupId>
+            <artifactId>micronaut-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut.data</groupId>
+            <artifactId>micronaut-data-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut.sql</groupId>
+            <artifactId>micronaut-jdbc-hikari</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>${h2.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
+        </dependency>
+
+        <!-- Security -->
+        <dependency>
+            <groupId>io.micronaut.security</groupId>
+            <artifactId>micronaut-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut.security</groupId>
+            <artifactId>micronaut-security-jwt</artifactId>
+        </dependency>
+
+        <!-- Kubernetes: also provides the ConfigMap/Secret property-source
+             support that used to live in the now-unpublished
+             micronaut-kubernetes-config artifact. -->
+        <dependency>
+            <groupId>io.micronaut.kubernetes</groupId>
+            <artifactId>micronaut-kubernetes-discovery-client</artifactId>
+        </dependency>
+
+        <!-- Kafka -->
+        <dependency>
+            <groupId>io.micronaut.kafka</groupId>
+            <artifactId>micronaut-kafka</artifactId>
+        </dependency>
+
+        <!-- Metrics -->
+        <dependency>
+            <groupId>io.micronaut.micrometer</groupId>
+            <artifactId>micronaut-micrometer-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut.micrometer</groupId>
+            <artifactId>micronaut-micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- OpenAPI -->
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>${swagger.version}</version>
+        </dependency>
+        <!-- Serde -->
+        <dependency>
+            <groupId>io.micronaut.serde</groupId>
+            <artifactId>micronaut-serde-jackson</artifactId>
+        </dependency>
+        <!-- Geração da especificação OpenAPI -->
+        <dependency>
+            <groupId>io.micronaut.openapi</groupId>
+            <artifactId>micronaut-openapi</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+            <version>${jakarta.annotation-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>1.5.18</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.5.18</version>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>io.micronaut.test</groupId>
+            <artifactId>micronaut-test-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>kafka</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>micronaut-demo</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <useModulePath>false</useModulePath>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>io.micronaut.maven</groupId>
+                <artifactId>micronaut-maven-plugin</artifactId>
+                <version>${micronaut.maven.plugin.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <testResourcesEnabled>false</testResourcesEnabled>
+                    <testResourcesVersion>2.0.2</testResourcesVersion>
+                    <aotDependencies>
+                        <dependency>
+                            <groupId>ch.qos.logback</groupId>
+                            <artifactId>logback-classic</artifactId>
+                            <version>1.5.18</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.fusesource.jansi</groupId>
+                            <artifactId>jansi</artifactId>
+                            <version>2.4.0</version>
+                        </dependency>
+                    </aotDependencies>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+                <version>1.1.9</version>
+                <configuration>
+                    <mainClass>com.example.Application</mainClass>
+                    <metadataRepository>
+                        <enabled>true</enabled>
+                    </metadataRepository>
+                    <buildArgs>
+                        <!-- Build-time: apenas classes que realmente precisam -->
+                        <buildArg>--initialize-at-build-time=org.bouncycastle,com.github.luben.zstd,org.slf4j,kotlin.coroutines.intrinsics.CoroutineSingletons,java.sql.DriverManager,org.postgresql.Driver,org.postgresql.util.SharedTimer,java.sql.DriverInfo,org.postgresql.jdbc</buildArg>
+
+                        <!-- Run-time: Netty, Logback, Hikari e outros que criam objetos no heap -->
+                        <buildArg>--initialize-at-run-time=io.netty,com.zaxxer.hikari,ch.qos.logback</buildArg>
+
+                        <!-- Recursos necessários -->
+                        <buildArg>-H:IncludeResources=application.*\.yml|logback.xml</buildArg>
+                        <buildArg>-H:IncludeResources=.*/META-INF/services/java.sql.Driver$</buildArg>
+                        <buildArg>-H:IncludeResources=META-INF/swagger/.*</buildArg>
+                    </buildArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                 <groupId>org.apache.maven.plugins</groupId>
+                 <artifactId>maven-compiler-plugin</artifactId>
+                 <version>${maven-compiler-plugin.version}</version>
+                 <configuration>
+                     <release>${jdk.version}</release>
+                     <annotationProcessorPaths combine.children="append">
+                         <path>
+                             <groupId>io.micronaut</groupId>
+                             <artifactId>micronaut-inject-java</artifactId>
+                             <version>${micronaut.core.version}</version>
+                         </path>
+                         <path>
+                             <groupId>io.micronaut</groupId>
+                             <artifactId>micronaut-http-validation</artifactId>
+                         </path>
+                         <path>
+                             <groupId>io.micronaut.openapi</groupId>
+                             <artifactId>micronaut-openapi</artifactId>
+                         </path>
+                         <path>
+                             <groupId>io.micronaut.validation</groupId>
+                             <artifactId>micronaut-validation-processor</artifactId>
+                             <version>${micronaut.validation.version}</version>
+                         </path>
+                         <path>
+                             <groupId>io.micronaut.data</groupId>
+                             <artifactId>micronaut-data-processor</artifactId>
+                             <version>${micronaut.data.version}</version>
+                         </path>
+                         <path>
+                             <groupId>io.micronaut.serde</groupId>
+                             <artifactId>micronaut-serde-processor</artifactId>
+                             <version>${micronaut.serde.version}</version>
+                         </path>
+                         <path>
+                             <groupId>io.micronaut.security</groupId>
+                             <artifactId>micronaut-security-annotations</artifactId>
+                             <version>${micronaut.security.version}</version>
+                         </path>
+                         <path>
+                             <groupId>io.micronaut.data</groupId>
+                             <artifactId>micronaut-data-hibernate-jpa</artifactId>
+                             <version>${micronaut.data.version}</version>
+                         </path>
+                     </annotationProcessorPaths>
+                     <compilerArgs>
+                         <arg>-parameters</arg>
+                         <arg>-Amicronaut.openapi.views.spec=swagger-ui.enabled=true,swagger-ui.theme=flattop</arg>
+                     </compilerArgs>
+                 </configuration>
+            </plugin>
+
+     <!-- Jib: builds a JVM container image without a Dockerfile -->
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>3.4.0</version>
+                <configuration>
+                    <to>
+                        <image>micronaut-demo:latest</image>
+                    </to>
+                    <container>
+                        <ports>
+                            <port>8080</port>
+                        </ports>
+                        <jvmFlags>
+                            <jvmFlag>-XX:MaxRAMPercentage=75.0</jvmFlag>
+                        </jvmFlags>
+                        <mainClass>com.example.Application</mainClass>
+                    </container>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
